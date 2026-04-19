@@ -210,6 +210,18 @@ Dubuwatch is currently in a "feature-complete for personal-use v1" state. Active
 
 ---
 
+## Known issues
+
+Honest about what's not perfect in v1:
+
+- **Anomaly markers on the history chart may not render in all cases.** The data flow is intact (the hover card on the chart correctly identifies anomalous minutes with the `spike: processName` line), but the visual dot markers on the timeseries line occasionally fail to draw. Cause is a XAML `ItemsControl` + `Canvas` interaction; fix is planned.
+- **All colors are hex literals in XAML.** A light theme or community-contributed theme would need a resource-dictionary refactor first.
+- **Binary is unsigned.** Windows SmartScreen shows a warning on first launch. Code signing is planned for a future release.
+- **"New this period" badges are noisy on fresh installs.** Every app appears "new" for the first few weeks since `first_seen_utc` gets populated at install time. Self-resolves as the app runs.
+- **Chrome per-tab attribution is not implemented.** Host-breakdown under each app covers ~70% of the same use case.
+
+---
+
 ## Built with
 
 - [Avalonia](https://avaloniaui.net/) 11.3 - cross-platform .NET UI framework
