@@ -1,0 +1,56 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Desuwatch.App.Views.CloseConfirmDialog"
+        Title="Close desuwatch?"
+        Width="380" Height="200"
+        MinWidth="380" MinHeight="200"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#0E0E12"
+        ShowInTaskbar="False">
+
+    <Grid Margin="20" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="14">
+
+        <StackPanel Grid.Row="0" Spacing="4">
+            <TextBlock Text="Close desuwatch?"
+                       FontSize="16" FontWeight="SemiBold" Foreground="#EDEDED" />
+            <TextBlock Text="The capture engine only runs while the app is open."
+                       FontSize="12" Foreground="#8A8A92" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Border Grid.Row="1" />
+
+        <CheckBox Grid.Row="2"
+                  x:Name="RememberChoiceCheckBox"
+                  Content="Don't ask again"
+                  Foreground="#C8C8D0"
+                  FontSize="12" />
+
+        <StackPanel Grid.Row="3"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+            <Button Content="Cancel"
+                    Click="OnCancelClicked"
+                    Padding="14,6"
+                    Background="#1E1E28"
+                    Foreground="#C8C8D0"
+                    BorderThickness="0" />
+            <Button Content="Quit"
+                    Click="OnQuitClicked"
+                    Padding="14,6"
+                    Background="#2A1020"
+                    Foreground="#E848A0"
+                    BorderThickness="0" />
+            <Button Content="Minimize to tray"
+                    Click="OnMinimizeClicked"
+                    Padding="14,6"
+                    Background="#261F38"
+                    Foreground="#EDEDED"
+                    BorderThickness="0"
+                    IsDefault="True" />
+        </StackPanel>
+
+    </Grid>
+
+</Window>

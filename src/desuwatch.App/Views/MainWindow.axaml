@@ -1,0 +1,1480 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:Desuwatch.App.ViewModels"
+        xmlns:conv="using:Desuwatch.App.Converters"
+        xmlns:sys="using:Avalonia.Data.Converters"
+        mc:Ignorable="d"
+        x:Class="Desuwatch.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="desuwatch"
+        Width="720" Height="640"
+        MinWidth="620" MinHeight="440"
+        Background="#0E0E12">
+
+    <Window.Resources>
+        <conv:BytesHumanizeConverter x:Key="Bytes" />
+    </Window.Resources>
+
+    <Window.Styles>
+        <!-- Banner critical state -->
+        <Style Selector="Border.critical">
+            <Setter Property="Background" Value="#2A1020" />
+            <Setter Property="BorderBrush" Value="#A83E7A" />
+        </Style>
+        <Style Selector="Border.critical TextBlock.banner-dot">
+            <Setter Property="Foreground" Value="#E848A0" />
+        </Style>
+        <Style Selector="Border.status-pill.protecting">
+            <Setter Property="Background" Value="#1F1830" />
+        </Style>
+        <!-- Protection-active banner state (muted purple, matches pill) -->
+        <Style Selector="Border.protecting">
+            <Setter Property="Background" Value="#1A1528" />
+            <Setter Property="BorderBrush" Value="#6A55A0" />
+        </Style>
+        <Style Selector="Border.protecting TextBlock.banner-dot">
+            <Setter Property="Foreground" Value="#B490E8" />
+        </Style>
+
+        <!-- Banner action button -->
+        <Style Selector="Button.banner-action">
+            <Setter Property="Background" Value="#2A2540" />
+            <Setter Property="BorderBrush" Value="#4A4060" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Foreground" Value="#D8C8F8" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Margin" Value="10,0,0,0" />
+        </Style>
+        <Style Selector="Button.banner-action:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#332D4E" />
+        </Style>
+
+        <!-- Row pulse (existing) -->
+        <Style Selector="Border.row">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.55" />
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.row.pulsing">
+            <Setter Property="Background" Value="#261F38" />
+        </Style>
+        <Style Selector="Border.row.idle">
+            <Setter Property="Opacity" Value="0.7" />
+        </Style>
+
+        <Style Selector="Border.host-row">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.55" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.host-row.pulsing">
+            <Setter Property="Background" Value="#1C1730" />
+        </Style>
+
+        <!-- Sparkline stroke (existing + idle variant) -->
+        <Style Selector="Polyline.sparkline">
+            <Setter Property="Stroke" Value="#7A7DD4" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Stroke" Duration="0:0:0.55" />
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Polyline.sparkline.pulsing">
+            <Setter Property="Stroke" Value="#E0A0FF" />
+        </Style>
+        <Style Selector="Polyline.sparkline.idle">
+            <Setter Property="Opacity" Value="0.5" />
+        </Style>
+
+        <!-- Signature purple bar on the most-active row -->
+        <Style Selector="Border.most-active-bar">
+            <Setter Property="IsVisible" Value="False" />
+            <Setter Property="Background" Value="#7A7DD4" />
+            <Setter Property="Opacity" Value="0.8" />
+            <Setter Property="Width" Value="2" />
+            <Setter Property="CornerRadius" Value="0,2,2,0" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,8" />
+        </Style>
+        <Style Selector="Border.most-active-bar.active">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+
+        <!-- Header icon buttons -->
+        <Style Selector="Button.icon-button">
+            <Setter Property="Background" Value="#1A1A24" />
+            <Setter Property="BorderBrush" Value="#26262F" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Foreground" Value="#8A8A92" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.icon-button:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#22222D" />
+            <Setter Property="BorderBrush" Value="#3A3A47" />
+        </Style>
+        <Style Selector="Button.icon-button:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#1F1F2A" />
+        </Style>
+
+        <!-- Status pill -->
+        <Style Selector="Border.status-pill">
+            <Setter Property="Background" Value="#1A1A24" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Tabular-number polish: applied via x:Name selectors below where
+             we want the monospaced-digit feel without swapping fonts.
+             FontFeatures="tnum" enables OpenType tabular-nums on Inter. -->
+        <Style Selector="TextBlock.tabular">
+            <Setter Property="FontFeatures" Value="+tnum" />
+        </Style>
+
+        <!-- Column header row labels -->
+        <Style Selector="TextBlock.col-header">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="#6B6B73" />
+            <Setter Property="LetterSpacing" Value="1.5" />
+        </Style>
+
+        <!-- Invisible scrim button: suppress all visual states -->
+        <Style Selector="Button.scrim /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.scrim:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.scrim:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <!-- History range picker pills -->
+        <Style Selector="Button.range-pill">
+            <Setter Property="Background" Value="#1A1A24" />
+            <Setter Property="BorderBrush" Value="#26262F" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="12,4" />
+            <Setter Property="Foreground" Value="#8A8A92" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.range-pill:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#22222D" />
+            <Setter Property="BorderBrush" Value="#3A3A47" />
+        </Style>
+        <Style Selector="Button.range-pill.active">
+            <Setter Property="Background" Value="#2A2540" />
+            <Setter Property="BorderBrush" Value="#6A55A0" />
+            <Setter Property="Foreground" Value="#C8A8F0" />
+        </Style>
+        <Style Selector="Button.range-pill.active /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2A2540" />
+        </Style>
+
+        <!-- History export button -->
+        <Style Selector="Button.export-button">
+            <Setter Property="Background" Value="#1A1A24" />
+            <Setter Property="BorderBrush" Value="#26262F" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="12,5" />
+            <Setter Property="Foreground" Value="#C8C8D0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.export-button:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#22222D" />
+            <Setter Property="BorderBrush" Value="#3A3A47" />
+        </Style>
+
+        <!-- Export menu items -->
+        <Style Selector="Button.export-menu-item">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="Foreground" Value="#C8C8D0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+        </Style>
+        <Style Selector="Button.export-menu-item:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#22222D" />
+        </Style>
+
+        <!-- Visual weight bar for history app rows -->
+        <Style Selector="Border.share-bar">
+            <Setter Property="Background" Value="#7A7DD4" />
+            <Setter Property="Opacity" Value="0.5" />
+            <Setter Property="CornerRadius" Value="1" />
+            <Setter Property="Height" Value="3" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+        </Style>
+
+        <!-- "new" badge for first-seen apps -->
+        <Style Selector="Border.new-badge">
+            <Setter Property="Background" Value="#2A2540" />
+            <Setter Property="BorderBrush" Value="#6A55A0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Padding" Value="5,1" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Forward Canvas.Left / Canvas.Top from axis labels to
+             their ContentPresenter wrappers so an ItemsControl with
+             a Canvas panel positions items by their data X. Without
+             this every item stacks at (0, 0). Separate styles per
+             item type because DataContext casting requires a
+             concrete type. -->
+        <Style Selector="ItemsControl#AxisLabelsHost > ContentPresenter">
+            <Setter Property="Canvas.Left"
+                    Value="{Binding ((vm:ChartAxisLabel)DataContext).X,
+                        RelativeSource={RelativeSource Self},
+                        FallbackValue=0}" />
+        </Style>
+        <Style Selector="ItemsControl#AnomalyMarkersHost > ContentPresenter">
+            <Setter Property="Canvas.Left"
+                    Value="{Binding ((vm:ChartAnomalyMarker)DataContext).X,
+                        RelativeSource={RelativeSource Self},
+                        FallbackValue=0}" />
+            <Setter Property="Canvas.Top"
+                    Value="{Binding ((vm:ChartAnomalyMarker)DataContext).Y,
+                        RelativeSource={RelativeSource Self},
+                        FallbackValue=0}" />
+        </Style>
+    </Window.Styles>
+
+    <Panel>
+        <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="16">
+
+            <!-- HEADER                                                        -->
+            <!-- ============================================================ -->
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,12,Auto,12,Auto,*,Auto,6,Auto,6,Auto,6,Auto"
+                  VerticalAlignment="Center">
+
+                <!-- Inline sparkline-logo glyph (matches tray icon aesthetic) -->
+                <Canvas Grid.Column="0" Width="28" Height="20" VerticalAlignment="Center">
+                    <Polyline Points="0,14 4,9 8,12 12,3 16,11 20,6 24,13 28,8"
+                              Stroke="#7A7DD4" StrokeThickness="1.6"
+                              StrokeLineCap="Round" StrokeJoin="Round" />
+                </Canvas>
+
+                <!-- Wordmark -->
+                <TextBlock Grid.Column="2" Text="desuwatch"
+                           FontSize="18" FontWeight="Medium"
+                           LetterSpacing="-0.36"
+                           Foreground="#EDEDED"
+                           VerticalAlignment="Center" />
+
+                <!-- Status pill -->
+                <Border Grid.Column="4" Classes="status-pill"
+                        Classes.protecting="{Binding IsProtectionActive}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="{Binding StatusPillText}"
+                                   FontSize="11" Foreground="#8A8A92"
+                                   IsVisible="{Binding !IsProtectionActive}" />
+                        <Ellipse Width="6" Height="6" Fill="#B490E8"
+                                 VerticalAlignment="Center"
+                                 IsVisible="{Binding IsProtectionActive}" />
+                        <TextBlock Text="{Binding ProtectionStatusText}"
+                                   FontSize="11" Foreground="#C8A8F0"
+                                   IsVisible="{Binding IsProtectionActive}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Icon buttons: Pause/Resume + Clear -->
+                <Button Grid.Column="6" Classes="icon-button"
+                        Command="{Binding PauseCommand}"
+                        IsVisible="{Binding IsCapturing}"
+                        ToolTip.Tip="Pause capture">
+                    <Canvas Width="10" Height="10">
+                        <Rectangle Canvas.Left="2" Canvas.Top="1"
+                                   Width="2" Height="8" Fill="#8A8A92" />
+                        <Rectangle Canvas.Left="6" Canvas.Top="1"
+                                   Width="2" Height="8" Fill="#8A8A92" />
+                    </Canvas>
+                </Button>
+                <Button Grid.Column="6" Classes="icon-button"
+                        Command="{Binding ResumeCommand}"
+                        IsVisible="{Binding !IsCapturing}"
+                        ToolTip.Tip="Resume capture">
+                    <Path Data="M 0,0 L 8,5 L 0,10 Z" Fill="#8A8A92"
+                          Width="8" Height="10" Stretch="Uniform" />
+                </Button>
+
+                <Button Grid.Column="8" Classes="icon-button"
+                        Command="{Binding ClearSessionCommand}"
+                        ToolTip.Tip="Clear session">
+                    <Path Data="M 0,0 L 10,10 M 10,0 L 0,10"
+                          Stroke="#8A8A92" StrokeThickness="1.4"
+                          StrokeLineCap="Round"
+                          Width="10" Height="10" Stretch="Uniform" />
+                </Button>
+
+                <Button Grid.Column="10" Classes="icon-button"
+                        Command="{Binding OpenHistoryCommand}"
+                        ToolTip.Tip="History">
+                    <Canvas Width="12" Height="12">
+                        <!-- Clock face outline -->
+                        <Ellipse Canvas.Left="0" Canvas.Top="0"
+                                 Width="12" Height="12"
+                                 Stroke="#8A8A92" StrokeThickness="1.1" />
+                        <!-- Hour hand -->
+                        <Line StartPoint="6,6" EndPoint="6,3"
+                              Stroke="#8A8A92" StrokeThickness="1.1"
+                              StrokeLineCap="Round" />
+                        <!-- Minute hand -->
+                        <Line StartPoint="6,6" EndPoint="9,7"
+                              Stroke="#8A8A92" StrokeThickness="1.1"
+                              StrokeLineCap="Round" />
+                    </Canvas>
+                </Button>
+
+                <Button Grid.Column="12" Classes="icon-button"
+                        Command="{Binding OpenSettingsCommand}"
+                        ToolTip.Tip="Settings">
+                    <Path
+                        Data="M 5,0 L 6.2,1.6 L 8.1,1.1 L 8.9,2.9 L 10,4.2 L 9.3,6 L 10,7.8 L 8.9,9.1 L 8.1,10.9 L 6.2,10.4 L 5,12 L 3.8,10.4 L 1.9,10.9 L 1.1,9.1 L 0,7.8 L 0.7,6 L 0,4.2 L 1.1,2.9 L 1.9,1.1 L 3.8,1.6 Z M 5,4 A 2,2 0 1 0 5,8 A 2,2 0 1 0 5,4"
+                        Stroke="#8A8A92" StrokeThickness="1.1"
+                        Fill="Transparent"
+                        Width="12" Height="12" Stretch="Uniform" />
+                </Button>
+            </Grid>
+
+            <!-- ============================================================ -->
+            <!-- CRITICAL BANNER                                               -->
+            <!-- ============================================================ -->
+            <Border Grid.Row="1"
+                    Classes.critical="{Binding IsBannerCritical}"
+                    Classes.protecting="{Binding IsProtectionBannerState}"
+                    IsVisible="{Binding ShowHotspotBanner}"
+                    Margin="0,12,0,0"
+                    Padding="14,10"
+                    CornerRadius="8"
+                    Background="#2A2010"
+                    BorderBrush="#8A6A2E"
+                    BorderThickness="1">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <TextBlock Grid.Column="0" Classes="banner-dot"
+                               Text="●" FontSize="10" Foreground="#E0A848"
+                               VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <TextBlock Grid.Column="1" Text="{Binding HotspotBannerText}"
+                               FontSize="13" FontWeight="Medium"
+                               Foreground="#EDEDED" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                    <Button Grid.Column="2"
+                            Classes="banner-action"
+                            Content="Pause background services"
+                            Command="{Binding PauseBackgroundServicesCommand}"
+                            IsVisible="{Binding CanOfferProtection}"
+                            VerticalAlignment="Center" />
+                    <Button Grid.Column="2"
+                            Classes="banner-action"
+                            Content="Resume"
+                            Command="{Binding ResumeBackgroundServicesCommand}"
+                            IsVisible="{Binding IsProtectionBannerState}"
+                            VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <!-- ============================================================ -->
+            <!-- STATS ROW: Today hero (1.3fr) + Cycle (1fr)                   -->
+            <!-- ============================================================ -->
+            <Grid Grid.Row="2" Margin="0,16,0,12"
+                  ColumnDefinitions="1.3*,12,1*">
+
+                <!-- TODAY HERO CARD -->
+                <Border Grid.Column="0"
+                        Background="#15151E"
+                        CornerRadius="10"
+                        Padding="18,14">
+                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+
+                        <!-- Label row: "today · since midnight" on left, "active" on right -->
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0"
+                                       Text="today · since midnight"
+                                       FontSize="11" Foreground="#8A8A92"
+                                       LetterSpacing="0.4" />
+                            <TextBlock Grid.Column="1"
+                                       Text="active"
+                                       FontSize="11" Foreground="#8A8A92"
+                                       LetterSpacing="0.4" />
+                        </Grid>
+
+                        <!-- Number row -->
+                        <Grid Grid.Row="1" ColumnDefinitions="Auto,4,Auto,*,Auto">
+                            <TextBlock Grid.Column="0" Classes="tabular"
+                                       FontSize="28" FontWeight="Medium"
+                                       Foreground="#EDEDED"
+                                       VerticalAlignment="Bottom"
+                                       Text="{Binding TodayTotalBytes,
+                                          Converter={x:Static conv:BytesSplitConverter.Number}}" />
+                            <TextBlock Grid.Column="2"
+                                       FontSize="15" Foreground="#8A8A92"
+                                       VerticalAlignment="Bottom" Margin="0,0,0,3"
+                                       Text="{Binding TodayTotalBytes,
+                                          Converter={x:Static conv:BytesSplitConverter.Unit}}" />
+
+                            <!-- "N apps" pill on the right -->
+                            <Border Grid.Column="4"
+                                    Background="#1A1A24" CornerRadius="10"
+                                    Padding="8,4"
+                                    VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Ellipse Width="6" Height="6" Fill="#7A7DD4"
+                                             VerticalAlignment="Center" />
+                                    <TextBlock Classes="tabular"
+                                               FontSize="11" Foreground="#C8C8D0"
+                                               VerticalAlignment="Center"
+                                               Text="{Binding ActiveAppCount,
+                                                  StringFormat='{}{0} apps'}" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Heartbeat area chart -->
+                        <Canvas Grid.Row="2" Height="32" ClipToBounds="True">
+                            <Polyline Points="{Binding HeartbeatPoints}"
+                                      Stroke="#7A7DD4" StrokeThickness="1.4"
+                                      StrokeLineCap="Round" StrokeJoin="Round" />
+                        </Canvas>
+                    </Grid>
+                </Border>
+
+                <!-- CYCLE CARD -->
+                <Border Grid.Column="2"
+                        Background="#15151E"
+                        CornerRadius="10"
+                        Padding="18,14">
+                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+
+                        <!-- Label row: cycle start on the left, cap % on the right -->
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding CycleStartDisplay, StringFormat='cycle · {0}'}"
+                                       FontSize="11" Foreground="#8A8A92"
+                                       LetterSpacing="0.4" />
+                            <TextBlock Grid.Column="1" Classes="tabular"
+                                       Text="{Binding CycleCapSubtitle}"
+                                       IsVisible="{Binding CycleCapSubtitle, Converter={x:Static sys:StringConverters.IsNotNullOrEmpty}}"
+                                       FontSize="11" Foreground="#8A8A92"
+                                       LetterSpacing="0.4" />
+                        </Grid>
+
+                        <!-- Number row -->
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4"
+                                    VerticalAlignment="Bottom">
+                            <TextBlock Classes="tabular"
+                                       FontSize="28" FontWeight="Medium"
+                                       Foreground="#EDEDED"
+                                       VerticalAlignment="Bottom"
+                                       Text="{Binding CycleTotalBytes,
+                                          Converter={x:Static conv:BytesSplitConverter.Number}}" />
+                            <TextBlock FontSize="15" Foreground="#8A8A92"
+                                       VerticalAlignment="Bottom" Margin="0,0,0,3"
+                                       Text="{Binding CycleTotalBytes,
+                                          Converter={x:Static conv:BytesSplitConverter.Unit}}" />
+                        </StackPanel>
+
+                        <!-- Session up/down mini totals -->
+                        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="↑" FontSize="11" Foreground="#6B6B73" />
+                                <TextBlock Classes="tabular" FontSize="12" Foreground="#C8C8D0"
+                                           Text="{Binding TotalBytesSent,
+                                              Converter={StaticResource Bytes}}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="↓" FontSize="11" Foreground="#6B6B73" />
+                                <TextBlock Classes="tabular" FontSize="12" Foreground="#C8C8D0"
+                                           Text="{Binding TotalBytesReceived,
+                                              Converter={StaticResource Bytes}}" />
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- ============================================================ -->
+            <!-- APP LIST                                                      -->
+            <!-- ============================================================ -->
+            <Border Grid.Row="3"
+                    Background="#15151E"
+                    CornerRadius="10"
+                    ClipToBounds="True">
+                <Grid RowDefinitions="Auto,*">
+
+                    <!-- Column header row -->
+                    <Grid Grid.Row="0"
+                          ColumnDefinitions="16,*,120,100,110"
+                          ColumnSpacing="16"
+                          Margin="16,12,16,8">
+                        <TextBlock Grid.Column="1" Classes="col-header" Text="PROCESS" />
+                        <TextBlock Grid.Column="2" Classes="col-header" Text="ACTIVITY · 60S" />
+                        <TextBlock Grid.Column="3" Classes="col-header" Text="RATE"
+                                   HorizontalAlignment="Right" />
+                        <TextBlock Grid.Column="4" Classes="col-header" Text="TOTAL"
+                                   HorizontalAlignment="Right" />
+                    </Grid>
+
+                    <!-- Thin separator -->
+                    <Border Grid.Row="0" Height="1" Background="#1F1F28"
+                            VerticalAlignment="Bottom" Margin="12,0" />
+
+                    <ScrollViewer Grid.Row="1">
+                        <ItemsControl ItemsSource="{Binding Apps}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="vm:AppUsageViewModel">
+                                    <StackPanel>
+                                        <!-- Top separator between rows -->
+                                        <Border Height="1" Background="#1F1F28" Margin="12,0" />
+
+                                        <Border Classes="row"
+                                                Classes.pulsing="{Binding IsPulsing}"
+                                                Classes.idle="{Binding !IsRecentlyActive}">
+                                            <Grid>
+                                                <!-- Most-active bar (absolute) -->
+                                                <Border Classes="most-active-bar"
+                                                        Classes.active="{Binding IsMostActive}" />
+
+                                                <Button Padding="0" Margin="0"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        HorizontalContentAlignment="Stretch"
+                                                        HorizontalAlignment="Stretch"
+                                                        Command="{Binding ToggleExpandedCommand}">
+                                                    <Grid ColumnDefinitions="16,*,120,100,110"
+                                                          Margin="16,10"
+                                                          ColumnSpacing="16">
+
+                                                        <!-- Chevron -->
+                                                        <TextBlock Grid.Column="0"
+                                                                   VerticalAlignment="Center"
+                                                                   HorizontalAlignment="Center"
+                                                                   FontSize="10" Foreground="#8A8A92"
+                                                                   Text="{Binding IsExpanded,
+                                                                      Converter={x:Static conv:ChevronConverter.Instance}}" />
+
+                                                        <!-- Process name + subtitle (two lines) -->
+                                                        <StackPanel Grid.Column="1" Spacing="2"
+                                                                    VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding ProcessName}"
+                                                                       FontSize="14" FontWeight="Medium"
+                                                                       Foreground="#EDEDED"
+                                                                       TextTrimming="CharacterEllipsis" />
+                                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                <TextBlock Classes="tabular"
+                                                                           FontSize="11" Foreground="#6B6B73"
+                                                                           Text="{Binding ConnectionCount,
+                                                                              StringFormat='{}{0} connections'}" />
+                                                                <TextBlock FontSize="11" Foreground="#6B6B73"
+                                                                           Text="·" />
+                                                                <TextBlock FontSize="11" Foreground="#6B6B73"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           Text="{Binding TopDomainsSummary}" />
+                                                            </StackPanel>
+                                                        </StackPanel>
+
+                                                        <!-- Activity sparkline -->
+                                                        <Polyline Grid.Column="2"
+                                                                  Classes="sparkline"
+                                                                  Classes.pulsing="{Binding IsPulsing}"
+                                                                  Classes.idle="{Binding !IsRecentlyActive}"
+                                                                  Width="120" Height="28"
+                                                                  VerticalAlignment="Center"
+                                                                  StrokeThickness="1.3"
+                                                                  StrokeLineCap="Round"
+                                                                  StrokeJoin="Round"
+                                                                  Points="{Binding SparklinePoints}" />
+
+                                                        <!-- Rate column: big number + peak subtitle -->
+                                                        <StackPanel Grid.Column="3" Spacing="2"
+                                                                    VerticalAlignment="Center"
+                                                                    HorizontalAlignment="Right">
+                                                            <TextBlock Classes="tabular"
+                                                                       FontSize="13" Foreground="#EDEDED"
+                                                                       HorizontalAlignment="Right"
+                                                                       Text="{Binding CurrentBytesPerSecond,
+                                                                          Converter={x:Static conv:RateFormatConverter.Combined}}" />
+                                                            <TextBlock Classes="tabular"
+                                                                       FontSize="10" Foreground="#6B6B73"
+                                                                       HorizontalAlignment="Right"
+                                                                       Text="{Binding PeakBytesPerSecondDisplay,
+                                                                          Converter={x:Static conv:RateFormatConverter.Combined},
+                                                                          StringFormat='peak {0}'}" />
+                                                        </StackPanel>
+
+                                                        <!-- Total column: big total + up/down subtitle -->
+                                                        <StackPanel Grid.Column="4" Spacing="2"
+                                                                    VerticalAlignment="Center"
+                                                                    HorizontalAlignment="Right">
+                                                            <TextBlock Classes="tabular"
+                                                                       FontSize="14" FontWeight="Medium"
+                                                                       Foreground="#EDEDED"
+                                                                       HorizontalAlignment="Right"
+                                                                       Text="{Binding TotalBytes,
+                                                                          Converter={StaticResource Bytes}}" />
+                                                            <StackPanel Orientation="Horizontal" Spacing="6"
+                                                                        HorizontalAlignment="Right">
+                                                                <TextBlock Classes="tabular"
+                                                                           FontSize="10" Foreground="#6B6B73"
+                                                                           Text="{Binding BytesSent,
+                                                                              Converter={StaticResource Bytes},
+                                                                              StringFormat='↑ {0}'}" />
+                                                                <TextBlock Classes="tabular"
+                                                                           FontSize="10" Foreground="#6B6B73"
+                                                                           Text="{Binding BytesReceived,
+                                                                              Converter={StaticResource Bytes},
+                                                                              StringFormat='↓ {0}'}" />
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Expanded host sub-list (unchanged layout) -->
+                                        <Border IsVisible="{Binding IsExpanded}"
+                                                Margin="48,0,16,8"
+                                                Padding="12,8"
+                                                Background="#0E0E16"
+                                                CornerRadius="6">
+                                            <ItemsControl ItemsSource="{Binding Hosts}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="vm:RemoteHostUsageViewModel">
+                                                        <Border Classes="host-row"
+                                                                Classes.pulsing="{Binding IsPulsing}"
+                                                                CornerRadius="3"
+                                                                Padding="4,0">
+                                                            <Grid ColumnDefinitions="*,110,110,110"
+                                                                  Margin="0,3"
+                                                                  ColumnSpacing="16">
+                                                                <TextBlock Grid.Column="0"
+                                                                           VerticalAlignment="Center"
+                                                                           FontSize="12" Foreground="#C8C8D0"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           Text="{Binding DisplayName}" />
+                                                                <TextBlock Grid.Column="1" Classes="tabular"
+                                                                           VerticalAlignment="Center"
+                                                                           HorizontalAlignment="Right"
+                                                                           FontSize="11" Foreground="#8A8A92"
+                                                                           Text="{Binding BytesSent,
+                                                                              Converter={StaticResource Bytes},
+                                                                              StringFormat='↑ {0}'}" />
+                                                                <TextBlock Grid.Column="2" Classes="tabular"
+                                                                           VerticalAlignment="Center"
+                                                                           HorizontalAlignment="Right"
+                                                                           FontSize="11" Foreground="#8A8A92"
+                                                                           Text="{Binding BytesReceived,
+                                                                              Converter={StaticResource Bytes},
+                                                                              StringFormat='↓ {0}'}" />
+                                                                <TextBlock Grid.Column="3" Classes="tabular"
+                                                                           VerticalAlignment="Center"
+                                                                           HorizontalAlignment="Right"
+                                                                           FontSize="11" FontWeight="Medium"
+                                                                           Foreground="#C8C8D0"
+                                                                           Text="{Binding TotalBytes,
+                                                                              Converter={StaticResource Bytes}}" />
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Border>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+        </Grid>
+
+        <!-- ================================================================ -->
+        <!-- SETTINGS OVERLAY — backdrop veil + slide panel from the right    -->
+        <!-- ================================================================ -->
+        <Panel IsVisible="{Binding IsSettingsOpen}">
+            <!-- Backdrop veil: static translucent overlay, no hover states.
+                 An invisible click-catcher Button sits on top of it so the
+                 scrim itself doesn't repaint on pointer move. -->
+            <Border Background="#B0000000"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                    IsHitTestVisible="False" />
+
+            <Button Classes="scrim"
+                    Background="Transparent"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                    BorderThickness="0" CornerRadius="0"
+                    Command="{Binding CloseSettingsCommand}"
+                    Focusable="False" />
+
+            <!-- Right-anchored settings drawer -->
+            <Border HorizontalAlignment="Right"
+                    Width="380"
+                    Background="#15151E"
+                    BorderBrush="#1F1F28" BorderThickness="1,0,0,0">
+                <Grid RowDefinitions="Auto,*,Auto">
+
+                    <!-- Header -->
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="20,20,14,16">
+                        <TextBlock Grid.Column="0"
+                                   Text="settings"
+                                   FontSize="18" FontWeight="Medium"
+                                   LetterSpacing="-0.36"
+                                   Foreground="#EDEDED"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Classes="icon-button"
+                                Command="{Binding CloseSettingsCommand}"
+                                ToolTip.Tip="Close">
+                            <Path Data="M 0,0 L 10,10 M 10,0 L 0,10"
+                                  Stroke="#8A8A92" StrokeThickness="1.4"
+                                  StrokeLineCap="Round"
+                                  Width="10" Height="10" Stretch="Uniform" />
+                        </Button>
+                    </Grid>
+
+                    <!-- Scrollable settings body -->
+                    <ScrollViewer Grid.Row="1" Padding="20,0,14,8">
+                        <StackPanel Spacing="24" DataContext="{Binding Settings}">
+
+                            <!-- DATA GROUP -->
+                            <StackPanel Spacing="12">
+                                <TextBlock Classes="col-header" Text="DATA" />
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Monthly data cap"
+                                               FontSize="13" Foreground="#EDEDED" />
+                                    <TextBlock Text="Shown in the cycle card. Leave at 0 for no cap."
+                                               FontSize="11" Foreground="#6B6B73"
+                                               TextWrapping="Wrap" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <NumericUpDown Grid.Column="0"
+                                                       Value="{Binding MonthlyDataCapGb}"
+                                                       Minimum="0" Maximum="10000"
+                                                       Increment="1"
+                                                       FormatString="0.#"
+                                                       AllowSpin="True"
+                                                       ClipValueToMinMax="True"
+                                                       ParsingNumberStyle="Float"
+                                                       Background="#0E0E16"
+                                                       BorderBrush="#26262F" />
+                                        <TextBlock Grid.Column="1" Text="GB"
+                                                   FontSize="12" Foreground="#8A8A92"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </StackPanel>
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Billing cycle reset day"
+                                               FontSize="13" Foreground="#EDEDED" />
+                                    <TextBlock Text="Day of month the cycle restarts (1–28)."
+                                               FontSize="11" Foreground="#6B6B73" />
+                                    <NumericUpDown Value="{Binding BillingCycleResetDay}"
+                                                   Minimum="1" Maximum="28" Increment="1"
+                                                   FormatString="0"
+                                                   AllowSpin="True"
+                                                   ClipValueToMinMax="True"
+                                                   ParsingNumberStyle="Integer"
+                                                   Background="#0E0E16"
+                                                   BorderBrush="#26262F" />
+                                </StackPanel>
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="History retention"
+                                               FontSize="13" Foreground="#EDEDED" />
+                                    <TextBlock
+                                        Text="How many days of usage history to keep. Takes effect the next time desuwatch launches."
+                                        FontSize="11" Foreground="#6B6B73"
+                                        TextWrapping="Wrap" />
+                                    <NumericUpDown Value="{Binding RetentionDays}"
+                                                   Minimum="7" Maximum="3650" Increment="30"
+                                                   FormatString="0"
+                                                   AllowSpin="True"
+                                                   ClipValueToMinMax="True"
+                                                   ParsingNumberStyle="Integer"
+                                                   Background="#0E0E16"
+                                                   BorderBrush="#26262F" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- WINDOW GROUP -->
+                            <StackPanel Spacing="12">
+                                <TextBlock Classes="col-header" Text="WINDOW" />
+
+                                <CheckBox IsChecked="{Binding StartMinimizedToTray}"
+                                          Foreground="#EDEDED">
+                                    <StackPanel>
+                                        <TextBlock Text="Start minimized to tray" FontSize="13" />
+                                        <TextBlock Text="Launch hidden; open from the tray icon."
+                                                   FontSize="11" Foreground="#6B6B73" />
+                                    </StackPanel>
+                                </CheckBox>
+
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="When closing the window"
+                                               FontSize="13" Foreground="#EDEDED" />
+                                    <RadioButton GroupName="CloseAction"
+                                                 IsChecked="{Binding CloseAction,
+                                                         Converter={x:Static conv:EnumEqualsConverter.Instance},
+                                                         ConverterParameter=Ask}"
+                                                 Foreground="#C8C8D0"
+                                                 Content="Ask every time" />
+                                    <RadioButton GroupName="CloseAction"
+                                                 IsChecked="{Binding CloseAction,
+                                                         Converter={x:Static conv:EnumEqualsConverter.Instance},
+                                                         ConverterParameter=MinimizeToTray}"
+                                                 Foreground="#C8C8D0"
+                                                 Content="Minimize to tray" />
+                                    <RadioButton GroupName="CloseAction"
+                                                 IsChecked="{Binding CloseAction,
+                                                         Converter={x:Static conv:EnumEqualsConverter.Instance},
+                                                         ConverterParameter=Quit}"
+                                                 Foreground="#C8C8D0"
+                                                 Content="Quit desuwatch" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- HOTSPOT PROTECTION GROUP -->
+                            <StackPanel Spacing="12" DataContext="{Binding HotspotProtection}">
+                                <TextBlock Classes="col-header" Text="HOTSPOT PROTECTION" />
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="When metered and over budget"
+                                               FontSize="13" Foreground="#EDEDED" />
+                                    <TextBlock
+                                        Text="How to respond when a metered connection combines with a projected cap overage."
+                                        FontSize="11" Foreground="#6B6B73"
+                                        TextWrapping="Wrap" />
+                                    <RadioButton GroupName="ProtectionMode"
+                                                 IsChecked="{Binding Mode,
+                                                         Converter={x:Static conv:EnumEqualsConverter.Instance},
+                                                         ConverterParameter=Ask}"
+                                                 Foreground="#C8C8D0">
+                                        <StackPanel>
+                                            <TextBlock Text="Ask" FontSize="13" />
+                                            <TextBlock Text="Show a button in the banner. Pause only when I click it."
+                                                       FontSize="11" Foreground="#6B6B73"
+                                                       TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                    <RadioButton GroupName="ProtectionMode"
+                                                 IsChecked="{Binding Mode,
+                                                         Converter={x:Static conv:EnumEqualsConverter.Instance},
+                                                         ConverterParameter=Auto}"
+                                                 Foreground="#C8C8D0">
+                                        <StackPanel>
+                                            <TextBlock Text="Auto" FontSize="13" />
+                                            <TextBlock
+                                                Text="Pause selected services automatically. Resume when the hotspot is gone."
+                                                FontSize="11" Foreground="#6B6B73"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                    <RadioButton GroupName="ProtectionMode"
+                                                 IsChecked="{Binding Mode,
+                                                         Converter={x:Static conv:EnumEqualsConverter.Instance},
+                                                         ConverterParameter=NotifyOnly}"
+                                                 Foreground="#C8C8D0">
+                                        <StackPanel>
+                                            <TextBlock Text="Notify only" FontSize="13" />
+                                            <TextBlock Text="Just show the banner. Don't offer to pause anything."
+                                                       FontSize="11" Foreground="#6B6B73"
+                                                       TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                </StackPanel>
+
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Services to pause"
+                                               FontSize="13" Foreground="#EDEDED" />
+                                    <TextBlock
+                                        Text="Paused services resume automatically when the hotspot is gone, or when you click Resume."
+                                        FontSize="11" Foreground="#6B6B73"
+                                        TextWrapping="Wrap" />
+                                    <CheckBox IsChecked="{Binding PauseWindowsUpdate}"
+                                              Foreground="#C8C8D0"
+                                              Content="Windows Update (wuauserv)" />
+                                    <CheckBox IsChecked="{Binding PauseDeliveryOptimization}"
+                                              Foreground="#C8C8D0"
+                                              Content="Delivery Optimization (DoSvc)" />
+                                    <CheckBox IsChecked="{Binding PauseUpdateOrchestrator}"
+                                              Foreground="#C8C8D0"
+                                              Content="Update Orchestrator (UsoSvc)" />
+                                    <CheckBox IsChecked="{Binding PauseBackgroundTransfer}"
+                                              Foreground="#C8C8D0"
+                                              Content="Background Transfer Service (BITS)" />
+
+                                    <!-- Dead-config warning: Ask/Auto mode is picked but nothing
+                                         is checked, so the feature has been silently disabled. -->
+                                    <Border IsVisible="{Binding IsEmptyConfigWarningVisible}"
+                                            Background="#2A1A10"
+                                            BorderBrush="#8A5A2E"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="10,8"
+                                            Margin="0,4,0,0">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="⚠"
+                                                       FontSize="13"
+                                                       Foreground="#E0A848"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock
+                                                Text="No services selected. Protection will do nothing when triggered."
+                                                FontSize="11"
+                                                Foreground="#D8B878"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- DETECTION GROUP -->
+                            <StackPanel Spacing="12">
+                                <TextBlock Classes="col-header" Text="DETECTION" />
+
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Row pulse sensitivity"
+                                               FontSize="13" Foreground="#EDEDED" />
+                                    <TextBlock
+                                        Text="When an app transfers much more than it usually does, its row pulses magenta. This controls how big that jump has to be before the pulse fires. Takes effect the next time desuwatch launches."
+                                        FontSize="11" Foreground="#6B6B73"
+                                        TextWrapping="Wrap" />
+
+                                    <RadioButton GroupName="AnomalySens"
+                                                 IsChecked="{Binding AnomalySensitivity,
+                                                         Converter={x:Static conv:EnumEqualsConverter.Instance},
+                                                         ConverterParameter=Low}"
+                                                 Foreground="#C8C8D0">
+                                        <StackPanel>
+                                            <TextBlock Text="Quiet" FontSize="13" />
+                                            <TextBlock
+                                                Text="Only fire on huge, obvious spikes. Fewer pulses, less noise."
+                                                FontSize="11" Foreground="#6B6B73"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </RadioButton>
+
+                                    <RadioButton GroupName="AnomalySens"
+                                                 IsChecked="{Binding AnomalySensitivity,
+                                                         Converter={x:Static conv:EnumEqualsConverter.Instance},
+                                                         ConverterParameter=Normal}"
+                                                 Foreground="#C8C8D0">
+                                        <StackPanel>
+                                            <TextBlock Text="Balanced (recommended)" FontSize="13" />
+                                            <TextBlock
+                                                Text="Fires when an app suddenly does much more than its recent baseline."
+                                                FontSize="11" Foreground="#6B6B73"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </RadioButton>
+
+                                    <RadioButton GroupName="AnomalySens"
+                                                 IsChecked="{Binding AnomalySensitivity,
+                                                         Converter={x:Static conv:EnumEqualsConverter.Instance},
+                                                         ConverterParameter=High}"
+                                                 Foreground="#C8C8D0">
+                                        <StackPanel>
+                                            <TextBlock Text="Sensitive" FontSize="13" />
+                                            <TextBlock
+                                                Text="Flags smaller changes from baseline. More pulses, easier to notice background activity."
+                                                FontSize="11" Foreground="#6B6B73"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                </StackPanel>
+                            </StackPanel>
+
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Footer -->
+                    <Border Grid.Row="2"
+                            BorderBrush="#1F1F28" BorderThickness="0,1,0,0"
+                            Padding="20,12">
+                        <TextBlock Text="Changes save automatically when you close this panel."
+                                   FontSize="11" Foreground="#6B6B73"
+                                   TextWrapping="Wrap" />
+                    </Border>
+                </Grid>
+            </Border>
+        </Panel>
+
+        <!-- ================================================================ -->
+        <!-- HISTORY OVERLAY — full-surface panel with timeseries + rankings  -->
+        <!-- ================================================================ -->
+        <Panel IsVisible="{Binding IsHistoryOpen}">
+            <Border Background="#B0000000"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                    IsHitTestVisible="False" />
+
+            <Button Classes="scrim"
+                    Background="Transparent"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                    BorderThickness="0" CornerRadius="0"
+                    Command="{Binding CloseHistoryCommand}"
+                    Focusable="False" />
+
+            <Border Margin="20"
+                    Background="#13131B"
+                    BorderBrush="#1F1F28" BorderThickness="1"
+                    CornerRadius="12"
+                    ClipToBounds="True">
+                <Grid RowDefinitions="Auto,Auto,Auto,*"
+                      DataContext="{Binding History}">
+
+                    <!-- ============ Header: title, range picker, export, X ============ -->
+                    <Grid Grid.Row="0" Margin="20,18,16,14"
+                          ColumnDefinitions="Auto,16,*,Auto,8,Auto">
+
+                        <TextBlock Grid.Column="0" Text="history"
+                                   FontSize="18" FontWeight="Medium"
+                                   LetterSpacing="-0.36"
+                                   Foreground="#EDEDED"
+                                   VerticalAlignment="Center" />
+
+                        <!-- Range picker -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6"
+                                    VerticalAlignment="Center" HorizontalAlignment="Left">
+                            <Button Classes="range-pill"
+                                    Classes.active="{Binding SelectedRange,
+                                        Converter={x:Static conv:EnumEqualsConverter.Instance},
+                                        ConverterParameter=Today}"
+                                    Content="today"
+                                    Command="{Binding SelectRangeCommand}"
+                                    CommandParameter="Today" />
+                            <Button Classes="range-pill"
+                                    Classes.active="{Binding SelectedRange,
+                                        Converter={x:Static conv:EnumEqualsConverter.Instance},
+                                        ConverterParameter=ThisCycle}"
+                                    Content="this cycle"
+                                    Command="{Binding SelectRangeCommand}"
+                                    CommandParameter="ThisCycle" />
+                            <Button Classes="range-pill"
+                                    Classes.active="{Binding SelectedRange,
+                                        Converter={x:Static conv:EnumEqualsConverter.Instance},
+                                        ConverterParameter=Last7Days}"
+                                    Content="7 days"
+                                    Command="{Binding SelectRangeCommand}"
+                                    CommandParameter="Last7Days" />
+                            <Button Classes="range-pill"
+                                    Classes.active="{Binding SelectedRange,
+                                        Converter={x:Static conv:EnumEqualsConverter.Instance},
+                                        ConverterParameter=Last30Days}"
+                                    Content="30 days"
+                                    Command="{Binding SelectRangeCommand}"
+                                    CommandParameter="Last30Days" />
+                        </StackPanel>
+
+                        <!-- Export button with popup menu -->
+                        <Button Grid.Column="3" Classes="export-button"
+                                Command="{Binding ToggleExportMenuCommand}"
+                                Content="Export ▾" />
+                        <Popup PlacementTarget="{Binding $parent[Grid].Children[5]}"
+                               Placement="BottomEdgeAlignedRight"
+                               IsOpen="{Binding IsExportMenuOpen}">
+                            <Border Background="#15151E"
+                                    BorderBrush="#26262F" BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="2" Margin="0,4,0,0"
+                                    MinWidth="140">
+                                <StackPanel>
+                                    <Button Classes="export-menu-item"
+                                            Content="CSV"
+                                            Command="{Binding ExportCsvCommand}" />
+                                    <Button Classes="export-menu-item"
+                                            Content="JSON"
+                                            Command="{Binding ExportJsonCommand}" />
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+
+                        <Button Grid.Column="5" Classes="icon-button"
+                                Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).CloseHistoryCommand}"
+                                ToolTip.Tip="Close">
+                            <Path Data="M 0,0 L 10,10 M 10,0 L 0,10"
+                                  Stroke="#8A8A92" StrokeThickness="1.4"
+                                  StrokeLineCap="Round"
+                                  Width="10" Height="10" Stretch="Uniform" />
+                        </Button>
+                    </Grid>
+
+                    <!-- ============ Summary row: total + counts ============ -->
+                    <Grid Grid.Row="1" Margin="20,0,20,14"
+                          ColumnDefinitions="Auto,24,Auto,24,Auto,*">
+
+                        <StackPanel Grid.Column="0" Spacing="2">
+                            <TextBlock Classes="col-header" Text="TOTAL" />
+                            <StackPanel Orientation="Horizontal" Spacing="4"
+                                        VerticalAlignment="Bottom">
+                                <TextBlock Classes="tabular"
+                                           FontSize="22" FontWeight="Medium"
+                                           Foreground="#EDEDED"
+                                           Text="{Binding RangeTotalBytes,
+                                              Converter={x:Static conv:BytesSplitConverter.Number}}" />
+                                <TextBlock FontSize="12" Foreground="#8A8A92"
+                                           VerticalAlignment="Bottom" Margin="0,0,0,3"
+                                           Text="{Binding RangeTotalBytes,
+                                              Converter={x:Static conv:BytesSplitConverter.Unit}}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Spacing="2">
+                            <TextBlock Classes="col-header" Text="APPS" />
+                            <TextBlock Classes="tabular"
+                                       FontSize="22" FontWeight="Medium"
+                                       Foreground="#EDEDED"
+                                       Text="{Binding RangeAppCount}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="4" Spacing="2">
+                            <TextBlock Classes="col-header" Text="NOTABLE EVENTS" />
+                            <TextBlock Classes="tabular"
+                                       FontSize="22" FontWeight="Medium"
+                                       Foreground="#EDEDED"
+                                       Text="{Binding RangeAnomalyCount}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- ============ Timeseries chart ============ -->
+                    <Border Grid.Row="2" Margin="20,0,20,14"
+                            Height="168"
+                            Background="#15151E"
+                            CornerRadius="10"
+                            Padding="16,12"
+                            ClipToBounds="True">
+                        <Grid RowDefinitions="Auto,*,Auto">
+
+                            <!-- Peak label sits in the chart's top-right
+                                 so the reader knows what the y-axis max
+                                 corresponds to. -->
+                            <TextBlock Grid.Row="0"
+                                       Text="{Binding PeakLabel}"
+                                       IsVisible="{Binding HasData}"
+                                       Classes="tabular"
+                                       FontSize="10" Foreground="#6B6B73"
+                                       HorizontalAlignment="Right"
+                                       Margin="0,0,0,4" />
+
+                            <!-- Chart body: fill polygon, line, crosshair,
+                                 hover label. Pointer events on the Canvas
+                                 drive the hover state. -->
+                            <Panel Grid.Row="1">
+                                <TextBlock Text="{Binding EmptyStateText}"
+                                           IsVisible="{Binding !HasData}"
+                                           FontSize="12" Foreground="#6B6B73"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                                <Canvas IsVisible="{Binding HasData}"
+                                        ClipToBounds="True"
+                                        Background="Transparent"
+                                        x:Name="HistoryChartCanvas"
+                                        SizeChanged="OnHistoryChartSizeChanged"
+                                        PointerMoved="OnHistoryChartPointerMoved"
+                                        PointerExited="OnHistoryChartPointerExited">
+                                    <Polygon Points="{Binding TimeseriesFillPoints}"
+                                             Fill="#7A7DD4"
+                                             Opacity="0.15" />
+                                    <Polyline Points="{Binding TimeseriesLinePoints}"
+                                              Stroke="#7A7DD4" StrokeThickness="1.6"
+                                              StrokeLineCap="Round"
+                                              StrokeJoin="Round" />
+
+                                    <!-- Anomaly markers: persistent purple
+                                         dots on the line itself, one per
+                                         minute-bucket that produced an
+                                         anomaly event. Tooltip surfaces
+                                         the process name on hover. -->
+                                    <ItemsControl Name="AnomalyMarkersHost"
+                                                  ItemsSource="{Binding AnomalyMarkers}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="vm:ChartAnomalyMarker">
+                                                <Ellipse Width="7" Height="7"
+                                                         Fill="#E0A0FF"
+                                                         Stroke="#13131B"
+                                                         StrokeThickness="1.5"
+                                                         ToolTip.Tip="{Binding ProcessName}">
+                                                    <Ellipse.RenderTransform>
+                                                        <TranslateTransform X="-3.5" Y="-3.5" />
+                                                    </Ellipse.RenderTransform>
+                                                </Ellipse>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Hover crosshair (vertical line +
+                                         dot at the snapped sample X). The
+                                         Line stretches the full canvas
+                                         height via its Y2 binding. -->
+                                    <Line IsVisible="{Binding IsHoverVisible}"
+                                          StartPoint="0,0"
+                                          EndPoint="0,200"
+                                          Stroke="#B490E8"
+                                          StrokeThickness="1"
+                                          Opacity="0.6"
+                                          Canvas.Left="{Binding HoverX}" />
+
+                                    <!-- Hover label card — timestamp on
+                                         top, value below, optional event
+                                         summary at the bottom. -->
+                                    <Border IsVisible="{Binding IsHoverVisible}"
+                                            Canvas.Left="{Binding HoverLabelX}"
+                                            Canvas.Top="4"
+                                            Background="#1A1528"
+                                            BorderBrush="#6A55A0"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="8,5"
+                                            MinWidth="120">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="{Binding HoverTimeText}"
+                                                       Classes="tabular"
+                                                       FontSize="10"
+                                                       Foreground="#8A8A92" />
+                                            <TextBlock Text="{Binding HoverValueText}"
+                                                       Classes="tabular"
+                                                       FontSize="12"
+                                                       FontWeight="Medium"
+                                                       Foreground="#EDEDED" />
+                                            <TextBlock Text="{Binding HoverEventsText}"
+                                                       IsVisible="{Binding HoverHasEvents}"
+                                                       FontSize="10"
+                                                       Foreground="#C8A8F0"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Border>
+                                </Canvas>
+                            </Panel>
+
+                            <!-- Axis labels row: 4 time markers across
+                                 the bottom edge of the chart area. Uses
+                                 an ItemsControl with a Canvas panel so
+                                 labels sit at their data-derived X. -->
+                            <ItemsControl Grid.Row="2"
+                                          Name="AxisLabelsHost"
+                                          IsVisible="{Binding HasData}"
+                                          ItemsSource="{Binding AxisLabels}"
+                                          Height="14"
+                                          Margin="0,6,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <Canvas />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="vm:ChartAxisLabel">
+                                        <TextBlock Text="{Binding Label}"
+                                                   Classes="tabular"
+                                                   FontSize="10"
+                                                   Foreground="#6B6B73" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </Border>
+
+                    <!-- ============ Body: top apps (left) + events (right) ============ -->
+                    <Grid Grid.Row="3" Margin="20,0,20,18"
+                          ColumnDefinitions="*,16,0.7*">
+
+                        <!-- TOP APPS -->
+                        <Border Grid.Column="0"
+                                Background="#15151E"
+                                CornerRadius="10"
+                                ClipToBounds="True">
+                            <Grid RowDefinitions="Auto,*">
+                                <TextBlock Grid.Row="0" Classes="col-header"
+                                           Text="TOP APPS"
+                                           Margin="16,14,16,8" />
+                                <Border Grid.Row="0" Height="1" Background="#1F1F28"
+                                        VerticalAlignment="Bottom" Margin="12,0" />
+
+                                <ScrollViewer Grid.Row="1">
+                                    <ItemsControl ItemsSource="{Binding TopApps}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="vm:HistoryAppRow">
+                                                <Grid Margin="16,10"
+                                                      ColumnDefinitions="*,100"
+                                                      ColumnSpacing="12">
+                                                    <StackPanel Grid.Column="0" Spacing="4"
+                                                                VerticalAlignment="Center">
+                                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                                            <TextBlock Text="{Binding ProcessName}"
+                                                                       FontSize="13" FontWeight="Medium"
+                                                                       Foreground="#EDEDED"
+                                                                       TextTrimming="CharacterEllipsis" />
+                                                            <Border Classes="new-badge"
+                                                                    IsVisible="{Binding IsNewInRange}">
+                                                                <TextBlock Text="new"
+                                                                           FontSize="9"
+                                                                           Foreground="#C8A8F0"
+                                                                           LetterSpacing="0.5" />
+                                                            </Border>
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding SubtitleText}"
+                                                                   Classes="tabular"
+                                                                   FontSize="10" Foreground="#6B6B73"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                        <Grid Height="3">
+                                                            <Border Background="#1F1F28"
+                                                                    CornerRadius="1"
+                                                                    HorizontalAlignment="Stretch"
+                                                                    VerticalAlignment="Center"
+                                                                    Height="3" />
+                                                            <Border Classes="share-bar"
+                                                                    Width="{Binding SharePercent}" />
+                                                        </Grid>
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Column="1" Spacing="2"
+                                                                VerticalAlignment="Center"
+                                                                HorizontalAlignment="Right">
+                                                        <StackPanel Orientation="Horizontal" Spacing="3"
+                                                                    HorizontalAlignment="Right">
+                                                            <TextBlock Classes="tabular"
+                                                                       FontSize="14" FontWeight="Medium"
+                                                                       Foreground="#EDEDED"
+                                                                       Text="{Binding TotalBytes,
+                                                                          Converter={x:Static conv:BytesSplitConverter.Number}}" />
+                                                            <TextBlock FontSize="10" Foreground="#8A8A92"
+                                                                       VerticalAlignment="Bottom"
+                                                                       Margin="0,0,0,2"
+                                                                       Text="{Binding TotalBytes,
+                                                                          Converter={x:Static conv:BytesSplitConverter.Unit}}" />
+                                                        </StackPanel>
+                                                        <StackPanel Orientation="Horizontal" Spacing="6"
+                                                                    HorizontalAlignment="Right">
+                                                            <TextBlock Classes="tabular"
+                                                                       FontSize="9" Foreground="#6B6B73"
+                                                                       Text="{Binding BytesSent,
+                                                                          Converter={StaticResource Bytes},
+                                                                          StringFormat='↑ {0}'}" />
+                                                            <TextBlock Classes="tabular"
+                                                                       FontSize="9" Foreground="#6B6B73"
+                                                                       Text="{Binding BytesReceived,
+                                                                          Converter={StaticResource Bytes},
+                                                                          StringFormat='↓ {0}'}" />
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+
+                        <!-- NOTABLE EVENTS + NEW -->
+                        <Border Grid.Column="2"
+                                Background="#15151E"
+                                CornerRadius="10"
+                                ClipToBounds="True">
+                            <ScrollViewer>
+                                <StackPanel>
+
+                                    <!-- New this period -->
+                                    <StackPanel IsVisible="{Binding FirstSeen.Count}"
+                                                Margin="0,0,0,0">
+                                        <TextBlock Classes="col-header"
+                                                   Text="NEW THIS PERIOD"
+                                                   Margin="16,14,16,8" />
+                                        <Border Height="1" Background="#1F1F28"
+                                                Margin="12,0,12,4" />
+                                        <ItemsControl ItemsSource="{Binding FirstSeen}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="vm:HistoryFirstSeenRow">
+                                                    <Grid Margin="16,6"
+                                                          ColumnDefinitions="*,Auto"
+                                                          ColumnSpacing="8">
+                                                        <TextBlock Grid.Column="0"
+                                                                   Text="{Binding ProcessName}"
+                                                                   FontSize="12"
+                                                                   Foreground="#EDEDED"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding TimeLabel}"
+                                                                   Classes="tabular"
+                                                                   FontSize="10"
+                                                                   Foreground="#6B6B73"
+                                                                   VerticalAlignment="Center" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+
+                                    <!-- Notable events (anomalies) -->
+                                    <TextBlock Classes="col-header"
+                                               Text="NOTABLE EVENTS"
+                                               Margin="16,14,16,8" />
+                                    <Border Height="1" Background="#1F1F28"
+                                            Margin="12,0,12,4" />
+                                    <ItemsControl ItemsSource="{Binding Anomalies}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="vm:HistoryAnomalyRow">
+                                                <StackPanel Margin="16,8" Spacing="3">
+                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                        <TextBlock Grid.Column="0"
+                                                                   Text="{Binding ProcessName}"
+                                                                   FontSize="12" FontWeight="Medium"
+                                                                   Foreground="#EDEDED"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding TimeLabel}"
+                                                                   Classes="tabular"
+                                                                   FontSize="10"
+                                                                   Foreground="#6B6B73" />
+                                                    </Grid>
+                                                    <TextBlock Text="{Binding DetailText}"
+                                                               FontSize="10"
+                                                               Foreground="#8A8A92"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <TextBlock Text="No notable events in this range."
+                                               IsVisible="{Binding !Anomalies.Count}"
+                                               FontSize="11"
+                                               Foreground="#6B6B73"
+                                               TextWrapping="Wrap"
+                                               HorizontalAlignment="Center"
+                                               Margin="16,16" />
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Panel>
+    </Panel>
+</Window>
